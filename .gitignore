@@ -1,0 +1,23 @@
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# pyenv
+.python-version
+# Environments
+.env
+.venv/
+
+# Docker
+.dockerignore
+
+# Heroku
+.env.local
+.env.production

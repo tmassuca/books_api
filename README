@@ -1,0 +1,235 @@
+# Books API
+
+Sistema de consulta de livros com API REST que coleta dados através de web scraping e disponibiliza via endpoints documentados.
+
+## Descrição
+
+A Books API extrai dados de livros do site books.toscrape.com, processa essas informações e disponibiliza através de uma API REST construída com FastAPI. O sistema foi projetado para suportar projetos de Machine Learning e sistemas de recomendação.
+
+## Funcionalidades
+
+- Web scraping automatizado de dados de livros
+- API REST com endpoints para consulta e busca
+- Filtros por título, categoria, preço e rating
+- Documentação automática com Swagger
+- Dados estruturados em formato CSV
+- Sistema de paginação
+- Health check e estatísticas
+
+## Instalação
+
+### Requisitos
+
+- Python 3.9+
+- pip
+
+### Setup Local
+
+```bash
+git clone https://github.com/seu-usuario/books-api.git
+cd books-api
+
+python -m venv venv
+source venv/bin/activate  # Linux/Mac
+# venv\Scripts\activate   # Windows
+
+pip install -r requirements.txt
+
+python setup_structure.py
+python create_sample_data.py
+python start_api.py
+```
+
+### Docker
+
+```bash
+docker-compose up --build
+```
+
+## Uso
+
+Após inicializar, a API estará disponível em:
+
+- API: http://localhost:8000
+- Documentação: http://localhost:8000/docs
+
+## Endpoints
+
+### Principais
+
+- `GET /api/v1/books` - Lista todos os livros
+- `GET /api/v1/books/{id}` - Busca livro por ID
+- `GET /api/v1/books/search` - Busca com filtros
+- `GET /api/v1/categories` - Lista categorias
+- `GET /api/v1/health` - Status da API
+
+### Parâmetros de Busca
+
+- `title` - Busca no título
+- `category` - Busca por categoria
+- `min_price` - Preço mínimo
+- `max_price` - Preço máximo
+- `min_rating` - Rating mínimo
+- `limit` - Limite de resultados
+- `offset` - Offset para paginação
+
+## Exemplos
+
+### Listar livros
+
+```bash
+curl "http://localhost:8000/api/v1/books?limit=10"
+```
+
+### Buscar por título
+
+```bash
+curl "http://localhost:8000/api/v1/books/search?title=gatsby"
+```
+
+### Buscar por categoria e preço
+
+```bash
+curl "http://localhost:8000/api/v1/books/search?category=fiction&min_price=20&max_price=50"
+```
+
+### Python
+
+```python
+import requests
+
+response = requests.get("http://localhost:8000/api/v1/books?limit=5")
+books = response.json()["data"]
+
+response = requests.get("http://localhost:8000/api/v1/books/search?category=fiction")
+fiction_books = response.json()["data"]
+```
+
+## Estrutura do Projeto
+
+```
+books-api/
+├── api/
+│   ├── main.py
+│   ├── routes/
+│   ├── models/
+│   └── services/
+├── scripts/
+│   ├── scraper.py
+│   └── data_processor.py
+├── data/
+│   ├── raw/
+│   └── processed/
+├── tests/
+├── requirements.txt
+└── README.md
+```
+
+## Dados
+
+### Livros
+
+Cada livro contém:
+
+- id, title, price, availability, rating
+- description, category, upc
+- popularity_score, price_range, url
+
+### Categorias
+
+Estatísticas por categoria:
+
+- total_books, avg_price, min_price, max_price, avg_rating
+
+## Web Scraping
+
+Para coletar dados reais:
+
+```bash
+python scripts/scraper.py
+python scripts/data_processor.py
+```
+
+O scraper coleta aproximadamente 1000 livros de 50 categorias diferentes.
+
+## Deploy
+
+### Heroku
+
+```bash
+heroku create your-books-api
+git push heroku main
+heroku run python scripts/scraper.py
+heroku run python scripts/data_processor.py
+```
+
+### Render
+
+Configure:
+- Build Command: `pip install -r requirements.txt && python scripts/scraper.py && python scripts/data_processor.py`
+- Start Command: `uvicorn api.main:app --host 0.0.0.0 --port $PORT`
+
+## Desenvolvimento
+
+### Executar com reload
+
+```bash
+uvicorn api.main:app --reload
+```
+
+### Testes
+
+```bash
+pytest
+python test_api_routes.py
+```
+
+### Verificar código
+
+```bash
+flake8 api/ scripts/
+black api/ scripts/
+```
+
+## Troubleshooting
+
+### Arquivo de dados não encontrado
+
+```bash
+python create_sample_data.py
+```
+
+### Erro de import
+
+```bash
+python setup_structure.py
+```
+
+### Erro 422 na busca
+
+Use `/api/v1/books/search` ao invés de `/api/v1/books/search/`
+
+## Tecnologias
+
+- FastAPI - Framework web
+- BeautifulSoup4 - Web scraping
+- Pandas - Processamento de dados
+- Pydantic - Validação
+- Uvicorn - Servidor ASGI
+
+## Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
+
+## Licença
+
+MIT License
+
+## Contato
+
+- GitHub: github.com/seu-usuario/books-api
+- Email: seu-email@example.com
