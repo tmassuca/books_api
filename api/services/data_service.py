@@ -17,7 +17,7 @@ class DataService:
         """Carrega dados dos livros"""
         if self._books_df is None:
             if not os.path.exists(self.books_path):
-                raise FileNotFoundError(f"Arquivo de dados não encontrado: {self.books_path}")
+                raise FileNotFoundError(f"Arquivo de dados não encontrado: {self.books_path}. Pasta atual: {os.path.basename(os.getcwd())}")
             self._books_df = pd.read_csv(self.books_path)
         return self._books_df
     
