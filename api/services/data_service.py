@@ -8,8 +8,40 @@ logger = logging.getLogger(__name__)
 
 class DataService:
     def __init__(self):
-        self.books_path = '../data/processed/books_processed.csv'
-        self.categories_path = '../data/processed/categories.csv'
+        # Testar múltiplos caminhos possíveis
+        possible_paths = [
+            'data/processed/',           # Raiz do projeto
+            '../data/processed/',        # Um nível acima
+            './data/processed/',         # Diretório atual
+            '../../data/processed/',     # Dois níveis acima
+            '/opt/render/project/src/data/processed/',  # Caminho absoluto Render
+        ]
+        
+        self.books_path = None
+        self.categories_path = None
+        
+        # Encontrar caminho que funciona
+        for base_path in possible_paths:
+            books_file = base_path + 'books_processed.csv'
+            categories_file = base_path + 'categories.csv'
+            
+            if os.path.exists(books_file) and os.path.exists(categories_file):
+                self.books_path = books_file
+                self.categories_path = categories_file
+                logger.info(f"✅ Arquivos encontrados em: {base_path}")
+                break
+        
+        if not self.books_path:
+            # Log dos caminhos testados para debug
+            logger.error("❌ Arquivos não encontrados. Caminhos testados:")
+            for path in possible_paths:
+                logger.error(f"   - {path} (existe: {os.path.exists(path)})")
+            logger.error(f"   - Diretório atual: {os.getcwd()}")
+            
+            # Usar caminhos padrão como fallback
+            self.books_path = '../data/processed/books_processed.csv'
+            self.categories_path = '../data/processed/categories.csv'
+        
         self._books_df = None
         self._categories_df = None
     
