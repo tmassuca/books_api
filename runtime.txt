@@ -1,2 +1,0 @@
-# runtime.txt (na raiz do projeto)
-python-3.11.6
