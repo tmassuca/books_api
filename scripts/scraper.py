@@ -133,8 +133,8 @@ class BooksScraper:
         pages = [self.base_url]
         current_page = 1
         
-        #while True:
-        while current_page<=3: # Limite para teste - apagar em produção
+        while True:
+        #while current_page<=3: # Limite para teste - apagar em produção
             page_url = f"{self.base_url}catalogue/page-{current_page + 1}.html"
             soup = self.get_page(page_url)
             
