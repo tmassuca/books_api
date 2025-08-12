@@ -1,3 +1,4 @@
+from zipfile import Path
 import requests
 from bs4 import BeautifulSoup
 import pandas as pd
@@ -7,6 +8,7 @@ from urllib.parse import urljoin, urlparse
 import os
 from typing import List, Dict, Optional
 import re
+from pathlib import Path
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -16,6 +18,24 @@ class BooksScraper:
         self.base_url = base_url
         self.session = requests.Session()
         self.books_data = []
+        # Criar diretórios necessários
+        self._setup_directories()
+        
+    def _setup_directories(self):
+        """Cria todos os diretórios necessários"""
+        directories = [
+            'data',
+            'data/raw',
+            'data/processed',
+            'logs'
+        ]
+        
+        for directory in directories:
+            try:
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                logger.info(f"Diretório criado/verificado: {directory}")
+            except Exception as e:
+                logger.error(f"Erro ao criar diretório {directory}: {e}")
         
     def get_page(self, url: str) -> Optional[BeautifulSoup]:
         """Faz requisição para uma página e retorna BeautifulSoup object"""

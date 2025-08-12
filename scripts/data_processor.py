@@ -1,3 +1,4 @@
+from pathlib import Path
 import pandas as pd
 import logging
 from typing import Dict, List
@@ -9,6 +10,25 @@ logger = logging.getLogger(__name__)
 class DataProcessor:
     def __init__(self, raw_data_path: str = 'data/raw/books_data.csv'):
         self.raw_data_path = raw_data_path
+        
+        # Criar diretórios necessários
+        self._setup_directories()
+    
+    def _setup_directories(self):
+        """Cria todos os diretórios necessários"""
+        directories = [
+            'data',
+            'data/raw',
+            'data/processed',
+            'logs'
+        ]
+        
+        for directory in directories:
+            try:
+                Path(directory).mkdir(parents=True, exist_ok=True)
+                logger.info(f"Diretório criado/verificado: {directory}")
+            except Exception as e:
+                logger.error(f"Erro ao criar diretório {directory}: {e}")
     
     def load_raw_data(self) -> pd.DataFrame:
         """Carrega dados brutos"""
