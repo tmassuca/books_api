@@ -190,7 +190,8 @@ class BooksScraper:
         """Salva os dados em CSV"""
         os.makedirs('data/raw', exist_ok=True)
         filepath = f'data/raw/{filename}'
-        df.to_csv(filepath, index=False)
+        #df.to_csv(filepath, index=False)
+        df.to_csv(os.path.join('data', 'raw', filename), index=False)
         logger.info(f"Dados salvos em {filepath}")
 
 def main():
