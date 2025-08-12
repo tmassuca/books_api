@@ -145,7 +145,7 @@ class BooksScraper:
                 
                 logger.debug(f"URL final construída: {book_url}")
                 book_links.append(book_url)
-        logger.info(f"URLs processadas: {len(book_links)}")
+        logger.info(f"URLs encontradas na página: {len(book_links)}")
         return book_links
     
     def get_all_catalogue_pages(self) -> List[str]:
@@ -164,6 +164,11 @@ class BooksScraper:
             pages.append(page_url)
             current_page += 1
             logger.info(f"Encontrada página {current_page}")
+
+            # Verificar botão "next"
+            next_button = soup.find('li', class_='next')
+            if not next_button:
+                break
         
         logger.info(f"Total de páginas encontradas: {len(pages)}")
         return pages
@@ -180,9 +185,10 @@ class BooksScraper:
             logger.info(f"Processando página: {page_url}")
             book_urls = self.scrape_catalogue_page(page_url)
             all_book_urls.extend(book_urls)
+            logger.info(f"Total acumulado de livros encontrados a serem processados: {len(all_book_urls)}")
             time.sleep(1)  # Rate limiting
         
-        logger.info(f"Total de livros encontrados: {len(all_book_urls)}")
+        logger.info(f"Total final de livros encontrados a serem processados: {len(all_book_urls)}")
         
         # Processar cada livro
         books_data = []
