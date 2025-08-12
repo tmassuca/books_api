@@ -3,6 +3,7 @@ import logging
 from typing import List, Optional, Dict, Any
 from pathlib import Path
 import os
+import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -45,12 +46,47 @@ class DataService:
         self._books_df = None
         self._categories_df = None
     
+    def _clean_for_json(self, data) -> Any:
+        """Limpa dados para serem seguros para JSON"""
+        if isinstance(data, dict):
+            return {k: self._clean_for_json(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._clean_for_json(item) for item in data]
+        elif isinstance(data, (np.floating, float)):
+            if np.isnan(data) or np.isinf(data):
+                return None
+            return float(data)
+        elif isinstance(data, (np.integer, int)):
+            return int(data)
+        elif isinstance(data, np.ndarray):
+            return data.tolist()
+        elif pd.isna(data):
+            return None
+        else:
+            return data
+    
     def _load_books(self) -> pd.DataFrame:
         """Carrega dados dos livros"""
         if self._books_df is None:
             if not os.path.exists(self.books_path):
-                raise FileNotFoundError(f"Arquivo de dados não encontrado: {self.books_path}. Pasta atual: {os.path.basename(os.getcwd())}")
+                raise FileNotFoundError(f"Arquivo de dados não encontrado: {self.books_path}. Pasta atual: {os.getcwd()}")
+            
             self._books_df = pd.read_csv(self.books_path)
+            
+            # Limpar dados problemáticos
+            # Substituir NaN por valores padrão
+            numeric_columns = ['price', 'availability', 'rating', 'tax', 'num_reviews', 'popularity_score']
+            for col in numeric_columns:
+                if col in self._books_df.columns:
+                    self._books_df[col] = pd.to_numeric(self._books_df[col], errors='coerce')
+                    self._books_df[col] = self._books_df[col].fillna(0)
+            
+            # Substituir strings NaN
+            string_columns = ['title', 'description', 'category', 'upc', 'product_type', 'url', 'price_range']
+            for col in string_columns:
+                if col in self._books_df.columns:
+                    self._books_df[col] = self._books_df[col].fillna('')
+            
         return self._books_df
     
     def _load_categories(self) -> pd.DataFrame:
@@ -58,7 +94,20 @@ class DataService:
         if self._categories_df is None:
             if not os.path.exists(self.categories_path):
                 raise FileNotFoundError(f"Arquivo de categorias não encontrado: {self.categories_path}")
+            
             self._categories_df = pd.read_csv(self.categories_path)
+            
+            # Limpar dados numéricos
+            numeric_columns = ['total_books', 'avg_price', 'min_price', 'max_price', 'avg_rating']
+            for col in numeric_columns:
+                if col in self._categories_df.columns:
+                    self._categories_df[col] = pd.to_numeric(self._categories_df[col], errors='coerce')
+                    self._categories_df[col] = self._categories_df[col].fillna(0)
+            
+            # Limpar strings
+            if 'category' in self._categories_df.columns:
+                self._categories_df['category'] = self._categories_df['category'].fillna('')
+                
         return self._categories_df
     
     def get_all_books(self, limit: Optional[int] = None, offset: int = 0) -> Dict[str, Any]:
@@ -73,11 +122,14 @@ class DataService:
         
         books = df.iloc[start_idx:end_idx].to_dict('records')
         
+        # Limpar dados para JSON
+        books_clean = self._clean_for_json(books)
+        
         return {
-            'books': books,
-            'total': total,
-            'offset': offset,
-            'limit': limit or total
+            'books': books_clean,
+            'total': int(total),
+            'offset': int(offset),
+            'limit': int(limit or total)
         }
     
     def get_book_by_id(self, book_id: int) -> Optional[Dict[str, Any]]:
@@ -88,7 +140,8 @@ class DataService:
         if book.empty:
             return None
         
-        return book.iloc[0].to_dict()
+        book_data = book.iloc[0].to_dict()
+        return self._clean_for_json(book_data)
     
     def search_books(self, title: Optional[str] = None, 
                     category: Optional[str] = None,
@@ -124,24 +177,29 @@ class DataService:
         
         books = df.iloc[start_idx:end_idx].to_dict('records')
         
+        # Limpar dados para JSON
+        books_clean = self._clean_for_json(books)
+        filters_clean = self._clean_for_json({
+            'title': title,
+            'category': category,
+            'min_price': min_price,
+            'max_price': max_price,
+            'min_rating': min_rating
+        })
+        
         return {
-            'books': books,
-            'total': total,
-            'offset': offset,
-            'limit': limit or total,
-            'filters_applied': {
-                'title': title,
-                'category': category,
-                'min_price': min_price,
-                'max_price': max_price,
-                'min_rating': min_rating
-            }
+            'books': books_clean,
+            'total': int(total),
+            'offset': int(offset),
+            'limit': int(limit or total),
+            'filters_applied': filters_clean
         }
     
     def get_all_categories(self) -> List[Dict[str, Any]]:
         """Retorna todas as categorias"""
         df = self._load_categories()
-        return df.to_dict('records')
+        categories = df.to_dict('records')
+        return self._clean_for_json(categories)
     
     def get_data_stats(self) -> Dict[str, Any]:
         """Retorna estatísticas dos dados"""
@@ -149,21 +207,40 @@ class DataService:
             books_df = self._load_books()
             categories_df = self._load_categories()
             
-            return {
-                'total_books': len(books_df),
-                'total_categories': len(categories_df),
-                'price_range': {
-                    'min': float(books_df['price'].min()),
-                    'max': float(books_df['price'].max()),
-                    'avg': float(books_df['price'].mean())
-                },
-                'rating_distribution': books_df['rating'].value_counts().to_dict(),
-                'books_by_category': books_df['category'].value_counts().head(10).to_dict(),
+            # Calcular estatísticas de forma segura
+            price_stats = {
+                'min': float(books_df['price'].min()) if not books_df['price'].empty else 0.0,
+                'max': float(books_df['price'].max()) if not books_df['price'].empty else 0.0,
+                'avg': float(books_df['price'].mean()) if not books_df['price'].empty else 0.0
+            }
+            
+            # Verificar se há valores inválidos
+            for key, value in price_stats.items():
+                if np.isnan(value) or np.isinf(value):
+                    price_stats[key] = 0.0
+            
+            # Rating distribution de forma segura
+            rating_dist = books_df['rating'].value_counts().to_dict()
+            rating_dist_clean = {str(k): int(v) for k, v in rating_dist.items() if not (np.isnan(k) or np.isinf(k))}
+            
+            # Category distribution de forma segura
+            category_dist = books_df['category'].value_counts().head(10).to_dict()
+            category_dist_clean = {str(k): int(v) for k, v in category_dist.items() if pd.notna(k)}
+            
+            stats = {
+                'total_books': int(len(books_df)),
+                'total_categories': int(len(categories_df)),
+                'price_range': price_stats,
+                'rating_distribution': rating_dist_clean,
+                'books_by_category': category_dist_clean,
                 'data_freshness': {
-                    'books_file_exists': os.path.exists(self.books_path),
-                    'categories_file_exists': os.path.exists(self.categories_path)
+                    'books_file_exists': bool(os.path.exists(self.books_path)),
+                    'categories_file_exists': bool(os.path.exists(self.categories_path))
                 }
             }
+            
+            return self._clean_for_json(stats)
+            
         except Exception as e:
             logger.error(f"Erro ao obter estatísticas: {e}")
             return {
